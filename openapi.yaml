@@ -1,0 +1,1318 @@
+openapi: 3.0.3
+info:
+  title: Sistem Pendataan Inventaris Laboratorium REST API
+  description: |
+    API Spesifikasi untuk Sistem Pendataan Inventaris Laboratorium (Sistem Pendataan Inventaris Laboratorium) 
+    menggunakan Spring Boot, JWT Authentication, dan Role-Based Access Control (RBAC).
+    
+    ### Peran Pengguna (Roles):
+    - **ADMIN**: Memiliki akses penuh ke seluruh sistem termasuk CRUD kategori, barang, laporan, dan aksi peminjaman.
+    - **PETUGAS**: Memiliki hak akses serupa dengan ADMIN untuk operasional sehari-hari (CRUD kategori/barang, persetujuan peminjaman, laporan).
+    - **MAHASISWA**: Hanya dapat melihat kategori/barang, melakukan pengajuan peminjaman barang untuk diri sendiri, dan melihat riwayat peminjaman miliknya sendiri.
+    
+    ### Alur Autentikasi:
+    1. Lakukan registrasi melalui `/api/auth/register` (opsional jika menggunakan akun seeder bawaan).
+    2. Lakukan login melalui `/api/auth/login` untuk mendapatkan token JWT.
+    3. Masukkan token tersebut dalam Header HTTP: `Authorization: Bearer <JWT_TOKEN>` untuk mengakses endpoint yang dilindungi.
+  version: 1.0.0
+servers:
+  - url: http://localhost:8080
+    description: Local Development Server
+paths:
+  /api/auth/register:
+    post:
+      tags:
+        - Authentication
+      summary: Registrasi Pengguna Baru
+      description: Mendaftarkan akun pengguna baru dengan menetapkan nama, email, password, dan perannya (ADMIN, PETUGAS, MAHASISWA).
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/RegisterRequest'
+      responses:
+        '201':
+          description: Registrasi berhasil dilakukan
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/WebResponseUserResponse'
+        '400':
+          description: Data input tidak valid atau email sudah terdaftar
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/WebResponseValidationError'
+
+  /api/auth/login:
+    post:
+      tags:
+        - Authentication
+      summary: Login Pengguna
+      description: Autentikasi menggunakan email dan password untuk mendapatkan JWT Token untuk akses API selanjutnya.
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/LoginRequest'
+      responses:
+        '200':
+          description: Login berhasil, JWT token dikembalikan
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/WebResponseJwtResponse'
+        '401':
+          description: Email atau password salah
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/WebResponseString'
+        '400':
+          description: Format data input tidak valid
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/WebResponseValidationError'
+
+  /api/kategori:
+    get:
+      tags:
+        - Kategori
+      summary: Dapatkan Semua Kategori
+      description: Mengambil daftar kategori barang inventaris dengan paginasi, pengurutan, dan pencarian data. Dapat diakses oleh ADMIN, PETUGAS, dan MAHASISWA.
+      security:
+        - BearerAuth: []
+      parameters:
+        - name: page
+          in: query
+          description: Nomor halaman (0-indexed)
+          required: false
+          schema:
+            type: integer
+            default: 0
+        - name: size
+          in: query
+          description: Jumlah data per halaman
+          required: false
+          schema:
+            type: integer
+            default: 10
+        - name: sortBy
+          in: query
+          description: Kolom/properti untuk pengurutan
+          required: false
+          schema:
+            type: string
+            default: idKategori
+        - name: sortDir
+          in: query
+          description: Arah pengurutan (ASC atau DESC)
+          required: false
+          schema:
+            type: string
+            enum: [ASC, DESC]
+            default: ASC
+      responses:
+        '200':
+          description: Berhasil memuat daftar kategori
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/WebResponseListKategoriResponse'
+        '401':
+          description: Token tidak valid atau tidak disertakan
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/WebResponseString'
+
+    post:
+      tags:
+        - Kategori
+      summary: Buat Kategori Baru
+      description: Menambahkan kategori barang baru ke sistem. Hanya dapat diakses oleh **ADMIN** dan **PETUGAS**.
+      security:
+        - BearerAuth: []
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/KategoriRequest'
+      responses:
+        '201':
+          description: Kategori berhasil dibuat
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/WebResponseKategoriResponse'
+        '400':
+          description: Validasi gagal / Nama kategori sudah digunakan
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/WebResponseValidationError'
+        '403':
+          description: Hak akses ditolak (Hanya ADMIN/PETUGAS)
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/WebResponseString'
+
+  /api/kategori/{id}:
+    get:
+      tags:
+        - Kategori
+      summary: Detail Kategori berdasarkan ID
+      description: Mengambil informasi detail satu kategori barang. Dapat diakses oleh ADMIN, PETUGAS, dan MAHASISWA.
+      security:
+        - BearerAuth: []
+      parameters:
+        - name: id
+          in: path
+          description: ID Kategori
+          required: true
+          schema:
+            type: integer
+            format: int64
+      responses:
+        '200':
+          description: Kategori ditemukan
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/WebResponseKategoriResponse'
+        '404':
+          description: Kategori tidak ditemukan
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/WebResponseString'
+
+    patch:
+      tags:
+        - Kategori
+      summary: Perbarui Kategori
+      description: Memperbarui data kategori berdasarkan ID. Hanya dapat diakses oleh **ADMIN** dan **PETUGAS**.
+      security:
+        - BearerAuth: []
+      parameters:
+        - name: id
+          in: path
+          description: ID Kategori yang akan diperbarui
+          required: true
+          schema:
+            type: integer
+            format: int64
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/KategoriRequest'
+      responses:
+        '200':
+          description: Kategori berhasil diperbarui
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/WebResponseKategoriResponse'
+        '404':
+          description: Kategori tidak ditemukan
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/WebResponseString'
+        '400':
+          description: Validasi gagal / Nama kategori duplikat
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/WebResponseValidationError'
+        '403':
+          description: Hak akses ditolak
+
+    delete:
+      tags:
+        - Kategori
+      summary: Hapus Kategori
+      description: Menghapus kategori berdasarkan ID. Hanya dapat diakses oleh **ADMIN** dan **PETUGAS**.
+      security:
+        - BearerAuth: []
+      parameters:
+        - name: id
+          in: path
+          description: ID Kategori yang akan dihapus
+          required: true
+          schema:
+            type: integer
+            format: int64
+      responses:
+        '200':
+          description: Kategori berhasil dihapus
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/WebResponseString'
+        '404':
+          description: Kategori tidak ditemukan
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/WebResponseString'
+        '403':
+          description: Hak akses ditolak
+
+  /api/barang:
+    get:
+      tags:
+        - Barang Inventaris
+      summary: Dapatkan Semua Barang Inventaris
+      description: Mengambil daftar barang dengan sistem paginasi, pengurutan, dan info relasi kategori. Dapat diakses oleh ADMIN, PETUGAS, dan MAHASISWA.
+      security:
+        - BearerAuth: []
+      parameters:
+        - name: page
+          in: query
+          description: Nomor halaman (0-indexed)
+          required: false
+          schema:
+            type: integer
+            default: 0
+        - name: size
+          in: query
+          description: Jumlah data per halaman
+          required: false
+          schema:
+            type: integer
+            default: 10
+        - name: sortBy
+          in: query
+          description: Kolom/properti untuk pengurutan
+          required: false
+          schema:
+            type: string
+            default: idBarang
+        - name: sortDir
+          in: query
+          description: Arah pengurutan (ASC atau DESC)
+          required: false
+          schema:
+            type: string
+            enum: [ASC, DESC]
+            default: ASC
+      responses:
+        '200':
+          description: Berhasil memuat daftar barang
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/WebResponseListBarangResponse'
+        '401':
+          description: Token tidak valid atau tidak disertakan
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/WebResponseString'
+
+    post:
+      tags:
+        - Barang Inventaris
+      summary: Daftarkan Barang Baru
+      description: Menambahkan barang inventaris baru ke sistem. Menghubungkan ke kategori tertentu. Hanya dapat diakses oleh **ADMIN** dan **PETUGAS**.
+      security:
+        - BearerAuth: []
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/BarangRequest'
+      responses:
+        '201':
+          description: Barang berhasil didaftarkan
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/WebResponseBarangResponse'
+        '400':
+          description: Validasi gagal / Kode barang sudah terdaftar
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/WebResponseValidationError'
+        '404':
+          description: ID Kategori tidak ditemukan
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/WebResponseString'
+        '403':
+          description: Hak akses ditolak (Hanya ADMIN/PETUGAS)
+
+  /api/barang/{id}:
+    get:
+      tags:
+        - Barang Inventaris
+      summary: Detail Barang berdasarkan ID
+      description: Mengambil informasi detail satu barang inventaris. Dapat diakses oleh ADMIN, PETUGAS, dan MAHASISWA.
+      security:
+        - BearerAuth: []
+      parameters:
+        - name: id
+          in: path
+          description: ID Barang
+          required: true
+          schema:
+            type: integer
+            format: int64
+      responses:
+        '200':
+          description: Barang ditemukan
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/WebResponseBarangResponse'
+        '404':
+          description: Barang tidak ditemukan
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/WebResponseString'
+
+    patch:
+      tags:
+        - Barang Inventaris
+      summary: Perbarui Barang
+      description: Memperbarui data barang inventaris berdasarkan ID. Hanya dapat diakses oleh **ADMIN** dan **PETUGAS**.
+      security:
+        - BearerAuth: []
+      parameters:
+        - name: id
+          in: path
+          description: ID Barang yang akan diperbarui
+          required: true
+          schema:
+            type: integer
+            format: int64
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/BarangRequest'
+      responses:
+        '200':
+          description: Barang berhasil diperbarui
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/WebResponseBarangResponse'
+        '404':
+          description: Barang atau Kategori tidak ditemukan
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/WebResponseString'
+        '400':
+          description: Validasi gagal / Kode barang duplikat
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/WebResponseValidationError'
+        '403':
+          description: Hak akses ditolak
+
+    delete:
+      tags:
+        - Barang Inventaris
+      summary: Hapus Barang
+      description: Menghapus data barang inventaris berdasarkan ID. Hanya dapat diakses oleh **ADMIN** dan **PETUGAS**.
+      security:
+        - BearerAuth: []
+      parameters:
+        - name: id
+          in: path
+          description: ID Barang yang akan dihapus
+          required: true
+          schema:
+            type: integer
+            format: int64
+      responses:
+        '200':
+          description: Barang berhasil dihapus
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/WebResponseString'
+        '404':
+          description: Barang tidak ditemukan
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/WebResponseString'
+        '403':
+          description: Hak akses ditolak
+
+  /api/peminjaman:
+    get:
+      tags:
+        - Transaksi Peminjaman
+      summary: Dapatkan Riwayat/Daftar Transaksi Peminjaman
+      description: |
+        Mengambil daftar pengajuan peminjaman barang dengan paginasi.
+        - **ADMIN** dan **PETUGAS** dapat melihat seluruh transaksi dari semua pengguna.
+        - **MAHASISWA** hanya dapat melihat riwayat peminjaman miliknya sendiri.
+      security:
+        - BearerAuth: []
+      parameters:
+        - name: page
+          in: query
+          description: Nomor halaman (0-indexed)
+          required: false
+          schema:
+            type: integer
+            default: 0
+        - name: size
+          in: query
+          description: Jumlah data per halaman
+          required: false
+          schema:
+            type: integer
+            default: 10
+        - name: sortBy
+          in: query
+          description: Kolom untuk pengurutan
+          required: false
+          schema:
+            type: string
+            default: idPeminjaman
+        - name: sortDir
+          in: query
+          description: Arah pengurutan (ASC atau DESC)
+          required: false
+          schema:
+            type: string
+            enum: [ASC, DESC]
+            default: DESC
+      responses:
+        '200':
+          description: Berhasil memuat daftar transaksi peminjaman
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/WebResponseListPeminjamanResponse'
+        '401':
+          description: Token tidak valid
+
+    post:
+      tags:
+        - Transaksi Peminjaman
+      summary: Ajukan Peminjaman Barang
+      description: |
+        Mengajukan peminjaman satu atau beberapa barang inventaris sekaligus.
+        - Status peminjaman default diset ke `MENUNGGU` (Pending).
+        - Sistem belum memotong stok saat pengajuan dibuat.
+        - Tanggal pinjam harus hari ini atau di masa mendatang.
+        - Dapat diakses oleh ADMIN, PETUGAS, dan MAHASISWA.
+      security:
+        - BearerAuth: []
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/PeminjamanRequest'
+      responses:
+        '201':
+          description: Pengajuan peminjaman berhasil dibuat, menunggu persetujuan
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/WebResponsePeminjamanResponse'
+        '400':
+          description: Validasi gagal / Tanggal pinjam melanggar aturan / ID barang salah
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/WebResponseValidationError'
+
+  /api/peminjaman/{id}/approve:
+    put:
+      tags:
+        - Transaksi Peminjaman
+      summary: Setujui Peminjaman Barang
+      description: |
+        Menyetujui transaksi peminjaman yang berstatus `MENUNGGU`.
+        - Stok tersedia (`jumlahTersedia`) pada barang-barang terkait akan dikurangi secara otomatis.
+        - Memastikan jumlah stok mencukupi sebelum mengurangi stok agar tidak negatif.
+        - Hanya dapat diakses oleh **ADMIN** dan **PETUGAS**.
+      security:
+        - BearerAuth: []
+      parameters:
+        - name: id
+          in: path
+          description: ID Transaksi Peminjaman
+          required: true
+          schema:
+            type: integer
+            format: int64
+      responses:
+        '200':
+          description: Transaksi peminjaman berhasil disetujui, stok berkurang
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/WebResponsePeminjamanResponse'
+        '400':
+          description: Peminjaman tidak berstatus MENUNGGU / Stok barang tidak mencukupi untuk disetujui
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/WebResponseString'
+        '404':
+          description: Transaksi peminjaman tidak ditemukan
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/WebResponseString'
+        '403':
+          description: Hak akses ditolak
+
+  /api/peminjaman/{id}/reject:
+    put:
+      tags:
+        - Transaksi Peminjaman
+      summary: Tolak Peminjaman Barang
+      description: |
+        Menolak pengajuan transaksi peminjaman yang berstatus `MENUNGGU`.
+        - Mengubah status transaksi menjadi `DITOLAK`.
+        - Tidak mempengaruhi stok barang.
+        - Hanya dapat diakses oleh **ADMIN** dan **PETUGAS**.
+      security:
+        - BearerAuth: []
+      parameters:
+        - name: id
+          in: path
+          description: ID Transaksi Peminjaman
+          required: true
+          schema:
+            type: integer
+            format: int64
+      responses:
+        '200':
+          description: Pengajuan peminjaman ditolak
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/WebResponsePeminjamanResponse'
+        '400':
+          description: Peminjaman tidak berstatus MENUNGGU (misal sudah disetujui atau dibatalkan sebelumnya)
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/WebResponseString'
+        '404':
+          description: Transaksi tidak ditemukan
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/WebResponseString'
+        '403':
+          description: Hak akses ditolak
+
+  /api/peminjaman/{id}/kembalikan:
+    put:
+      tags:
+        - Transaksi Peminjaman
+      summary: Kembalikan Barang Peminjaman
+      description: |
+        Memproses pengembalian barang atas transaksi peminjaman yang berstatus `DISETUJUI`.
+        - Stok barang tersedia (`jumlahTersedia`) akan otomatis dipulihkan / ditambah kembali.
+        - Kondisi akhir masing-masing barang saat dikembalikan (BAIK, RUSAK_RINGAN, RUSAK_BERAT) dapat dicatat melalui request body (opsional).
+        - Mengubah status transaksi menjadi `DIKEMBALIKAN`.
+        - Hanya dapat diakses oleh **ADMIN** dan **PETUGAS**.
+      security:
+        - BearerAuth: []
+      parameters:
+        - name: id
+          in: path
+          description: ID Transaksi Peminjaman yang akan dikembalikan barangnya
+          required: true
+          schema:
+            type: integer
+            format: int64
+      requestBody:
+        required: false
+        description: Detail kondisi pengembalian barang. Jika kosong, kondisi dianggap BAIK.
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/PengembalianRequest'
+      responses:
+        '200':
+          description: Barang peminjaman berhasil dikembalikan, stok dipulihkan
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/WebResponsePeminjamanResponse'
+        '400':
+          description: Peminjaman tidak berstatus DISETUJUI / Sudah dikembalikan sebelumnya
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/WebResponseString'
+        '404':
+          description: Transaksi tidak ditemukan
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/WebResponseString'
+        '403':
+          description: Hak akses ditolak
+
+  /api/laporan/stok:
+    get:
+      tags:
+        - Laporan Ringkasan
+      summary: Unduh Laporan Stok Inventaris
+      description: |
+        Menyediakan data ringkasan metrik statistik stok laboratorium yang aktual:
+        - Jumlah total kategori, unit barang, dan total stok sistem.
+        - Total stok yang saat ini tersedia dan sedang dipinjam.
+        - Distribusi kondisi barang (BAIK, RUSAK_RINGAN, RUSAK_BERAT).
+        Hanya dapat diakses oleh **ADMIN** dan **PETUGAS**.
+      security:
+        - BearerAuth: []
+      responses:
+        '200':
+          description: Laporan stok inventaris berhasil dimuat
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/WebResponseLaporanStokResponse'
+        '401':
+          description: Token tidak valid
+        '403':
+          description: Hak akses ditolak
+
+  /api/laporan/peminjaman:
+    get:
+      tags:
+        - Laporan Ringkasan
+      summary: Laporan Statistik Peminjaman
+      description: |
+        Menampilkan data ringkasan total transaksi peminjaman secara kumulatif serta jumlah transaksi berdasarkan statusnya 
+        (Menunggu, Disetujui, Ditolak, Dikembalikan).
+        Hanya dapat diakses oleh **ADMIN** dan **PETUGAS**.
+      security:
+        - BearerAuth: []
+      responses:
+        '200':
+          description: Laporan transaksi peminjaman berhasil dimuat
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/WebResponseLaporanPeminjamanResponse'
+        '401':
+          description: Token tidak valid
+        '403':
+          description: Hak akses ditolak
+
+components:
+  securitySchemes:
+    BearerAuth:
+      type: http
+      scheme: bearer
+      bearerFormat: JWT
+      description: Masukkan token JWT Anda dalam format `Bearer <token>` pada header Otorisasi HTTP.
+
+  schemas:
+    # Request Objects
+    RegisterRequest:
+      type: object
+      required:
+        - nama
+        - email
+        - password
+        - role
+      properties:
+        nama:
+          type: string
+          minLength: 2
+          maxLength: 100
+          example: Ahmad Mahasiswa
+        email:
+          type: string
+          format: email
+          example: mahasiswa@lab.com
+        password:
+          type: string
+          minLength: 6
+          example: mahasiswa123
+        role:
+          $ref: '#/components/schemas/Role'
+
+    LoginRequest:
+      type: object
+      required:
+        - email
+        - password
+      properties:
+        email:
+          type: string
+          format: email
+          example: admin@lab.com
+        password:
+          type: string
+          example: admin123
+
+    KategoriRequest:
+      type: object
+      required:
+        - namaKategori
+      properties:
+        namaKategori:
+          type: string
+          maxLength: 100
+          example: Alat Ukur Elektronik
+        deskripsi:
+          type: string
+          example: Komponen alat ukur elektronik praktikum teknik elektro (Multimeter, Osciloscope, Signal Generator, dll)
+
+    BarangRequest:
+      type: object
+      required:
+        - idKategori
+        - namaBarang
+        - kodeBarang
+        - jumlahTotal
+        - kondisi
+        - lokasi
+      properties:
+        idKategori:
+          type: integer
+          format: int64
+          example: 1
+        namaBarang:
+          type: string
+          example: Digital Multimeter Sanwa CD800a
+        kodeBarang:
+          type: string
+          example: BRG-EL-001
+        jumlahTotal:
+          type: integer
+          minimum: 1
+          example: 15
+        kondisi:
+          $ref: '#/components/schemas/KondisiBarang'
+        lokasi:
+          type: string
+          example: Lab Elektronika, Lemari B, Rak 3
+
+    PeminjamanRequest:
+      type: object
+      required:
+        - tglPinjam
+        - tglKembali
+        - details
+      properties:
+        tglPinjam:
+          type: string
+          format: date
+          example: "2026-05-18"
+          description: Tanggal peminjaman barang (harus hari ini atau masa mendatang)
+        tglKembali:
+          type: string
+          format: date
+          example: "2026-05-25"
+          description: Tanggal rencana pengembalian barang
+        catatan:
+          type: string
+          example: Untuk keperluan praktikum mata kuliah Mikroprosesor minggu ini.
+        details:
+          type: array
+          items:
+            $ref: '#/components/schemas/DetailPeminjamanRequest'
+
+    DetailPeminjamanRequest:
+      type: object
+      required:
+        - idBarang
+        - jumlah
+      properties:
+        idBarang:
+          type: integer
+          format: int64
+          example: 1
+        jumlah:
+          type: integer
+          minimum: 1
+          example: 2
+
+    PengembalianRequest:
+      type: object
+      required:
+        - details
+      properties:
+        details:
+          type: array
+          items:
+            $ref: '#/components/schemas/PengembalianDetailRequest'
+
+    PengembalianDetailRequest:
+      type: object
+      required:
+        - idDetail
+        - kondisiKembali
+      properties:
+        idDetail:
+          type: integer
+          format: int64
+          example: 1
+          description: ID Detail peminjaman barang yang dikembalikan
+        kondisiKembali:
+          $ref: '#/components/schemas/KondisiBarang'
+
+    # Enums
+    Role:
+      type: string
+      enum:
+        - ADMIN
+        - PETUGAS
+        - MAHASISWA
+      example: ADMIN
+
+    KondisiBarang:
+      type: string
+      enum:
+        - BAIK
+        - RUSAK_RINGAN
+        - RUSAK_BERAT
+      example: BAIK
+
+    StatusPeminjaman:
+      type: string
+      enum:
+        - MENUNGGU
+        - DISETUJUI
+        - DITOLAK
+        - DIKEMBALIKAN
+      example: MENUNGGU
+
+    # Wrapper Response Objects
+    WebResponseString:
+      type: object
+      properties:
+        code:
+          type: integer
+          example: 200
+        status:
+          type: string
+          example: OK
+        message:
+          type: string
+          example: Operasi berhasil!
+        data:
+          type: string
+          nullable: true
+          example: null
+
+    WebResponseValidationError:
+      type: object
+      properties:
+        code:
+          type: integer
+          example: 400
+        status:
+          type: string
+          example: BAD REQUEST
+        message:
+          type: string
+          example: Validation failed
+        data:
+          type: object
+          additionalProperties:
+            type: string
+          example:
+            email: Format email tidak valid!
+            password: Password minimal terdiri dari 6 karakter!
+
+    PagingResponse:
+      type: object
+      properties:
+        currentPage:
+          type: integer
+          example: 0
+        totalPages:
+          type: integer
+          example: 1
+        size:
+          type: integer
+          example: 10
+        totalElements:
+          type: integer
+          format: int64
+          example: 5
+
+    # Entity Response Objects
+    UserResponse:
+      type: object
+      properties:
+        idUser:
+          type: integer
+          format: int64
+          example: 1
+        nama:
+          type: string
+          example: Ahmad Mahasiswa
+        email:
+          type: string
+          format: email
+          example: mahasiswa@lab.com
+        role:
+          $ref: '#/components/schemas/Role'
+        createdAt:
+          type: string
+          format: date-time
+          example: "2026-05-18T08:50:00Z"
+
+    WebResponseUserResponse:
+      type: object
+      properties:
+        code:
+          type: integer
+          example: 201
+        status:
+          type: string
+          example: CREATED
+        message:
+          type: string
+          example: Registrasi pengguna berhasil dilakukan!
+        data:
+          $ref: '#/components/schemas/UserResponse'
+
+    JwtResponse:
+      type: object
+      properties:
+        token:
+          type: string
+          example: eyJhbGciOiJIUzI1NiJ9.eyJzdWIiOiJtYWhhc2lzd2FAbGFiLmNvbSIsImlhdCI6MTcxNTk5NjQwMCwiZXhwIjoxNzE2MDgyNDAwfQ...
+        user:
+          $ref: '#/components/schemas/UserResponse'
+
+    WebResponseJwtResponse:
+      type: object
+      properties:
+        code:
+          type: integer
+          example: 200
+        status:
+          type: string
+          example: OK
+        message:
+          type: string
+          example: Login berhasil!
+        data:
+          $ref: '#/components/schemas/JwtResponse'
+
+    KategoriResponse:
+      type: object
+      properties:
+        idKategori:
+          type: integer
+          format: int64
+          example: 1
+        namaKategori:
+          type: string
+          example: Alat Ukur Elektronik
+        deskripsi:
+          type: string
+          example: Komponen alat ukur elektronik praktikum teknik elektro (Multimeter, Osciloscope, Signal Generator, dll)
+
+    WebResponseKategoriResponse:
+      type: object
+      properties:
+        code:
+          type: integer
+          example: 201
+        status:
+          type: string
+          example: CREATED
+        message:
+          type: string
+          example: Kategori berhasil dibuat!
+        data:
+          $ref: '#/components/schemas/KategoriResponse'
+
+    WebResponseListKategoriResponse:
+      type: object
+      properties:
+        code:
+          type: integer
+          example: 200
+        status:
+          type: string
+          example: OK
+        message:
+          type: string
+          example: Berhasil mendapatkan daftar kategori!
+        data:
+          type: array
+          items:
+            $ref: '#/components/schemas/KategoriResponse'
+        paging:
+          $ref: '#/components/schemas/PagingResponse'
+
+    BarangResponse:
+      type: object
+      properties:
+        idBarang:
+          type: integer
+          format: int64
+          example: 1
+        idKategori:
+          type: integer
+          format: int64
+          example: 1
+        namaKategori:
+          type: string
+          example: Alat Ukur Elektronik
+        namaBarang:
+          type: string
+          example: Digital Multimeter Sanwa CD800a
+        kodeBarang:
+          type: string
+          example: BRG-EL-001
+        jumlahTotal:
+          type: integer
+          example: 15
+        jumlahTersedia:
+          type: integer
+          example: 13
+        kondisi:
+          $ref: '#/components/schemas/KondisiBarang'
+        lokasi:
+          type: string
+          example: Lab Elektronika, Lemari B, Rak 3
+
+    WebResponseBarangResponse:
+      type: object
+      properties:
+        code:
+          type: integer
+          example: 201
+        status:
+          type: string
+          example: CREATED
+        message:
+          type: string
+          example: Barang inventaris berhasil didaftarkan!
+        data:
+          $ref: '#/components/schemas/BarangResponse'
+
+    WebResponseListBarangResponse:
+      type: object
+      properties:
+        code:
+          type: integer
+          example: 200
+        status:
+          type: string
+          example: OK
+        message:
+          type: string
+          example: Berhasil mendapatkan daftar barang inventaris!
+        data:
+          type: array
+          items:
+            $ref: '#/components/schemas/BarangResponse'
+        paging:
+          $ref: '#/components/schemas/PagingResponse'
+
+    DetailPeminjamanResponse:
+      type: object
+      properties:
+        idDetail:
+          type: integer
+          format: int64
+          example: 1
+        idBarang:
+          type: integer
+          format: int64
+          example: 1
+        namaBarang:
+          type: string
+          example: Digital Multimeter Sanwa CD800a
+        kodeBarang:
+          type: string
+          example: BRG-EL-001
+        jumlah:
+          type: integer
+          example: 2
+        kondisiKembali:
+          anyOf:
+            - $ref: '#/components/schemas/KondisiBarang'
+            - type: string
+              nullable: true
+          description: Kondisi barang saat dikembalikan. Berstatus `null` selama status pinjam belum DIKEMBALIKAN.
+
+    PeminjamanResponse:
+      type: object
+      properties:
+        idPeminjaman:
+          type: integer
+          format: int64
+          example: 1
+        peminjam:
+          $ref: '#/components/schemas/UserResponse'
+        petugas:
+          anyOf:
+            - $ref: '#/components/schemas/UserResponse'
+            - type: object
+              nullable: true
+          description: Petugas/Admin yang melakukan verifikasi transaksi. Bernilai `null` jika status peminjaman masih MENUNGGU.
+        tglPinjam:
+          type: string
+          format: date
+          example: "2026-05-18"
+        tglKembali:
+          type: string
+          format: date
+          example: "2026-05-25"
+        status:
+          $ref: '#/components/schemas/StatusPeminjaman'
+        catatan:
+          type: string
+          example: Untuk keperluan praktikum mata kuliah Mikroprosesor minggu ini.
+        details:
+          type: array
+          items:
+            $ref: '#/components/schemas/DetailPeminjamanResponse'
+
+    WebResponsePeminjamanResponse:
+      type: object
+      properties:
+        code:
+          type: integer
+          example: 201
+        status:
+          type: string
+          example: CREATED
+        message:
+          type: string
+          example: Pengajuan peminjaman berhasil dibuat, menunggu persetujuan petugas!
+        data:
+          $ref: '#/components/schemas/PeminjamanResponse'
+
+    WebResponseListPeminjamanResponse:
+      type: object
+      properties:
+        code:
+          type: integer
+          example: 200
+        status:
+          type: string
+          example: OK
+        message:
+          type: string
+          example: Daftar transaksi peminjaman berhasil dimuat!
+        data:
+          type: array
+          items:
+            $ref: '#/components/schemas/PeminjamanResponse'
+        paging:
+          $ref: '#/components/schemas/PagingResponse'
+
+    LaporanStokResponse:
+      type: object
+      properties:
+        totalKategori:
+          type: integer
+          format: int64
+          example: 5
+        totalBarangUnit:
+          type: integer
+          format: int64
+          example: 25
+        totalStokSistem:
+          type: integer
+          format: int64
+          example: 230
+        totalStokTersedia:
+          type: integer
+          format: int64
+          example: 215
+        totalStokDipinjam:
+          type: integer
+          format: int64
+          example: 15
+        barangKondisiBaik:
+          type: integer
+          format: int64
+          example: 220
+        barangKondisiRusakRingan:
+          type: integer
+          format: int64
+          example: 8
+        barangKondisiRusakBerat:
+          type: integer
+          format: int64
+          example: 2
+
+    WebResponseLaporanStokResponse:
+      type: object
+      properties:
+        code:
+          type: integer
+          example: 200
+        status:
+          type: string
+          example: OK
+        message:
+          type: string
+          example: Laporan stok inventaris berhasil dimuat!
+        data:
+          $ref: '#/components/schemas/LaporanStokResponse'
+
+    LaporanPeminjamanResponse:
+      type: object
+      properties:
+        totalPeminjaman:
+          type: integer
+          format: int64
+          example: 45
+        statusMenunggu:
+          type: integer
+          format: int64
+          example: 3
+        statusDisetujui:
+          type: integer
+          format: int64
+          example: 12
+        statusDitolak:
+          type: integer
+          format: int64
+          example: 5
+        statusDikembalikan:
+          type: integer
+          format: int64
+          example: 25
+
+    WebResponseLaporanPeminjamanResponse:
+      type: object
+      properties:
+        code:
+          type: integer
+          example: 200
+        status:
+          type: string
+          example: OK
+        message:
+          type: string
+          example: Laporan transaksi peminjaman berhasil dimuat!
+        data:
+          $ref: '#/components/schemas/LaporanPeminjamanResponse'
