@@ -82,6 +82,16 @@ public class PeminjamanServiceImpl implements PeminjamanService {
         }
 
         Peminjaman savedPeminjaman = peminjamanRepository.save(peminjaman);
+
+        pusherService.trigger(
+                "notifications",
+                "peminjaman-new",
+                Map.of(
+                        "peminjamanId", savedPeminjaman.getId(),
+                        "message", "Peminjaman baru #" + savedPeminjaman.getId() + " dari " + user.getNama()
+                )
+        );
+
         return PeminjamanMapper.toResponse(savedPeminjaman);
     }
 
@@ -152,7 +162,7 @@ public class PeminjamanServiceImpl implements PeminjamanService {
                 "notifications",
                 "peminjaman-updated",
                 Map.of(
-                        "id", updatedPeminjaman.getId(),
+                        "peminjamanId", updatedPeminjaman.getId(),
                         "status", updatedPeminjaman.getStatus().name(),
                         "message", "Peminjaman #" + updatedPeminjaman.getId() + " telah disetujui",
                         "userId", updatedPeminjaman.getPeminjam().getId()
@@ -184,7 +194,7 @@ public class PeminjamanServiceImpl implements PeminjamanService {
                 "notifications",
                 "peminjaman-updated",
                 Map.of(
-                        "id", updatedPeminjaman.getId(),
+                        "peminjamanId", updatedPeminjaman.getId(),
                         "status", updatedPeminjaman.getStatus().name(),
                         "message", "Peminjaman #" + updatedPeminjaman.getId() + " telah ditolak",
                         "userId", updatedPeminjaman.getPeminjam().getId()
@@ -236,7 +246,7 @@ public class PeminjamanServiceImpl implements PeminjamanService {
                 "notifications",
                 "peminjaman-updated",
                 Map.of(
-                        "id", updatedPeminjaman.getId(),
+                        "peminjamanId", updatedPeminjaman.getId(),
                         "status", updatedPeminjaman.getStatus().name(),
                         "message", "Peminjaman #" + updatedPeminjaman.getId() + " telah dikembalikan",
                         "userId", updatedPeminjaman.getPeminjam().getId()
