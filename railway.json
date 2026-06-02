@@ -9,5 +9,8 @@
     "healthcheckPath": "/api/auth/login",
     "restartPolicyType": "ON_FAILURE",
     "restartPolicyMaxRetries": 10
+  },
+  "service": {
+    "port": 8080
   }
 }
