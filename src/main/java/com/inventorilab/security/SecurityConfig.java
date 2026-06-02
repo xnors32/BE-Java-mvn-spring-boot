@@ -65,6 +65,10 @@ public class SecurityConfig {
             .authorizeHttpRequests(auth ->
                 auth
                     // =============== PUBLIC ENDPOINTS ===============
+                    // Health check endpoint
+                    .requestMatchers("/health")
+                    .permitAll()
+
                     // Authentication endpoints (Register & Login)
                     .requestMatchers("/api/auth/**")
                     .permitAll()
