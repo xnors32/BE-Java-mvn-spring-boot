@@ -43,7 +43,7 @@ public class SecurityConfig {
     private final JwtAuthenticationFilter jwtAuthFilter;
     private final CustomUserDetailsService userDetailsService;
 
-    @Value("${app.cors.allowed-origins:}")
+    @Value("${app.cors.allowed-origins:https://frontend-baru.vercel.app}")
     private String allowedOriginsFromEnv;
 
     /**
@@ -181,7 +181,10 @@ public class SecurityConfig {
             "http://127.0.0.1:3000"
         ));
         if (allowedOriginsFromEnv != null && !allowedOriginsFromEnv.isBlank()) {
-            origins.addAll(Arrays.asList(allowedOriginsFromEnv.split(",")));
+            for (String o : allowedOriginsFromEnv.split(",")) {
+                o = o.trim();
+                if (!o.isEmpty()) origins.add(o);
+            }
         }
         config.setAllowedOrigins(origins);
 
