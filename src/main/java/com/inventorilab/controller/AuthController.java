@@ -1,17 +1,18 @@
 package com.inventorilab.controller;
 
-import com.inventorilab.dto.request.LoginRequest;
-import com.inventorilab.dto.request.RegisterRequest;
+import com.inventorilab.dto.request.*;
 import com.inventorilab.dto.response.JwtResponse;
 import com.inventorilab.dto.response.UserResponse;
 import com.inventorilab.response.WebResponse;
 import com.inventorilab.service.interfaces.AuthService;
 import jakarta.validation.Valid;
 import lombok.RequiredArgsConstructor;
+import lombok.extern.slf4j.Slf4j;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
 
+@Slf4j
 @RestController
 @RequestMapping("/api/auth")
 @RequiredArgsConstructor
@@ -43,4 +44,9 @@ public class AuthController {
                 .build();
         return ResponseEntity.ok(response);
     }
+
+    // ============================================================
+    // Firebase auth (Google & Phone) dinonaktifkan sementara
+    // Lihat: FirebaseConfig.java - diatur via app.firebase.enabled
+    // ============================================================
 }

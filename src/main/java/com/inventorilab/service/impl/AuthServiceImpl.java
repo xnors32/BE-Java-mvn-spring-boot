@@ -1,7 +1,6 @@
 package com.inventorilab.service.impl;
 
-import com.inventorilab.dto.request.LoginRequest;
-import com.inventorilab.dto.request.RegisterRequest;
+import com.inventorilab.dto.request.*;
 import com.inventorilab.dto.response.JwtResponse;
 import com.inventorilab.dto.response.UserResponse;
 import com.inventorilab.entity.User;
@@ -12,6 +11,7 @@ import com.inventorilab.security.CustomUserDetailsService;
 import com.inventorilab.security.JwtService;
 import com.inventorilab.service.interfaces.AuthService;
 import lombok.RequiredArgsConstructor;
+import lombok.extern.slf4j.Slf4j;
 import org.springframework.security.authentication.AuthenticationManager;
 import org.springframework.security.authentication.UsernamePasswordAuthenticationToken;
 import org.springframework.security.core.userdetails.UserDetails;
@@ -19,6 +19,7 @@ import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
+@Slf4j
 @Service
 @RequiredArgsConstructor
 public class AuthServiceImpl implements AuthService {
@@ -33,15 +34,17 @@ public class AuthServiceImpl implements AuthService {
     @Transactional
     public UserResponse register(RegisterRequest request) {
         if (userRepository.existsByEmail(request.getEmail())) {
-            throw new BadRequestException("Email '" + request.getEmail() + "' sudah terdaftar!");
+            throw new BadRequestException(
+                "Email '" + request.getEmail() + "' sudah terdaftar!"
+            );
         }
 
         User user = User.builder()
-                .nama(request.getNama())
-                .email(request.getEmail())
-                .password(passwordEncoder.encode(request.getPassword()))
-                .role(request.getRole())
-                .build();
+            .nama(request.getNama())
+            .email(request.getEmail())
+            .password(passwordEncoder.encode(request.getPassword()))
+            .role(request.getRole())
+            .build();
 
         User savedUser = userRepository.save(user);
         return UserMapper.toResponse(savedUser);
@@ -51,18 +54,53 @@ public class AuthServiceImpl implements AuthService {
     @Transactional(readOnly = true)
     public JwtResponse login(LoginRequest request) {
         authenticationManager.authenticate(
-                new UsernamePasswordAuthenticationToken(request.getEmail(), request.getPassword())
+            new UsernamePasswordAuthenticationToken(
+                request.getEmail(),
+                request.getPassword()
+            )
         );
 
-        User user = userRepository.findByEmail(request.getEmail())
-                .orElseThrow(() -> new BadRequestException("Email atau password salah!"));
+        User user = userRepository
+            .findByEmail(request.getEmail())
+            .orElseThrow(() ->
+                new BadRequestException("Email atau password salah!")
+            );
 
-        UserDetails userDetails = userDetailsService.loadUserByUsername(user.getEmail());
+        UserDetails userDetails = userDetailsService.loadUserByUsername(
+            user.getEmail()
+        );
         String token = jwtService.generateToken(userDetails);
 
         return JwtResponse.builder()
-                .token(token)
-                .user(UserMapper.toResponse(user))
-                .build();
+            .token(token)
+            .user(UserMapper.toResponse(user))
+            .build();
+    }
+
+    // ============================================================
+    // Firebase auth (Google & Phone) dinonaktifkan sementara
+    // ============================================================
+    @Override
+    public JwtResponse loginWithGoogle(GoogleLoginRequest request) {
+        throw new UnsupportedOperationException("Google login tidak tersedia");
+    }
+
+    @Override
+    public JwtResponse registerWithGoogle(GoogleRegisterRequest request) {
+        throw new UnsupportedOperationException(
+            "Google register tidak tersedia"
+        );
+    }
+
+    @Override
+    public JwtResponse loginWithPhone(PhoneLoginRequest request) {
+        throw new UnsupportedOperationException("Phone login tidak tersedia");
+    }
+
+    @Override
+    public JwtResponse registerWithPhone(PhoneRegisterRequest request) {
+        throw new UnsupportedOperationException(
+            "Phone register tidak tersedia"
+        );
     }
 }
