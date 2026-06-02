@@ -19,6 +19,7 @@ import com.inventorilab.repository.BarangRepository;
 import com.inventorilab.repository.DetailPeminjamanRepository;
 import com.inventorilab.repository.PeminjamanRepository;
 import com.inventorilab.repository.UserRepository;
+import com.inventorilab.service.PusherService;
 import com.inventorilab.service.interfaces.PeminjamanService;
 import lombok.RequiredArgsConstructor;
 import org.springframework.data.domain.Page;
@@ -38,6 +39,7 @@ public class PeminjamanServiceImpl implements PeminjamanService {
     private final DetailPeminjamanRepository detailPeminjamanRepository;
     private final UserRepository userRepository;
     private final BarangRepository barangRepository;
+    private final PusherService pusherService;
 
     @Override
     @Transactional
@@ -145,6 +147,18 @@ public class PeminjamanServiceImpl implements PeminjamanService {
         peminjaman.setPetugas(petugas);
 
         Peminjaman updatedPeminjaman = peminjamanRepository.save(peminjaman);
+
+        pusherService.trigger(
+                "notifications",
+                "peminjaman-updated",
+                Map.of(
+                        "id", updatedPeminjaman.getId(),
+                        "status", updatedPeminjaman.getStatus().name(),
+                        "message", "Peminjaman #" + updatedPeminjaman.getId() + " telah disetujui",
+                        "userId", updatedPeminjaman.getPeminjam().getId()
+                )
+        );
+
         return PeminjamanMapper.toResponse(updatedPeminjaman);
     }
 
@@ -165,6 +179,18 @@ public class PeminjamanServiceImpl implements PeminjamanService {
         peminjaman.setPetugas(petugas);
 
         Peminjaman updatedPeminjaman = peminjamanRepository.save(peminjaman);
+
+        pusherService.trigger(
+                "notifications",
+                "peminjaman-updated",
+                Map.of(
+                        "id", updatedPeminjaman.getId(),
+                        "status", updatedPeminjaman.getStatus().name(),
+                        "message", "Peminjaman #" + updatedPeminjaman.getId() + " telah ditolak",
+                        "userId", updatedPeminjaman.getPeminjam().getId()
+                )
+        );
+
         return PeminjamanMapper.toResponse(updatedPeminjaman);
     }
 
@@ -205,6 +231,18 @@ public class PeminjamanServiceImpl implements PeminjamanService {
         peminjaman.setPetugas(petugas);
 
         Peminjaman updatedPeminjaman = peminjamanRepository.save(peminjaman);
+
+        pusherService.trigger(
+                "notifications",
+                "peminjaman-updated",
+                Map.of(
+                        "id", updatedPeminjaman.getId(),
+                        "status", updatedPeminjaman.getStatus().name(),
+                        "message", "Peminjaman #" + updatedPeminjaman.getId() + " telah dikembalikan",
+                        "userId", updatedPeminjaman.getPeminjam().getId()
+                )
+        );
+
         return PeminjamanMapper.toResponse(updatedPeminjaman);
     }
 }
