@@ -1,24 +1,22 @@
 server:
-  port: 4000
+  port: ${PORT:4000}
 
 spring:
   datasource:
-    url: jdbc:mariadb://localhost:3306/inventori_lab
-    username: root
-    password: alif
+    url: ${DATABASE_URL:jdbc:mariadb://localhost:3306/inventori_lab}
+    username: ${DATABASE_USERNAME:root}
+    password: ${DATABASE_PASSWORD:alif}
     driver-class-name: org.mariadb.jdbc.Driver
   jpa:
     database-platform: org.hibernate.dialect.MariaDBDialect
     hibernate:
       ddl-auto: update
-    show-sql: true
+    show-sql: ${SHOW_SQL:true}
     properties:
       hibernate:
         format_sql: true
 
 app:
   jwt:
-    # 256-bit secret key in base64/hex
-    secret: 404E635266556A586E3272357538782F413F4428472B4B6250645367566B5970
-    # Token expiration time: 86400000 ms (24 hours)
-    expiration: 86400000
+    secret: ${JWT_SECRET:404E635266556A586E3272357538782F413F4428472B4B6250645367566B5970}
+    expiration: ${JWT_EXPIRATION:86400000}

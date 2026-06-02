@@ -2,10 +2,9 @@ package com.inventorilab.entity;
 
 import com.inventorilab.enums.Role;
 import jakarta.persistence.*;
+import java.time.LocalDateTime;
 import lombok.*;
 import org.hibernate.annotations.CreationTimestamp;
-
-import java.time.LocalDateTime;
 
 @Data
 @Builder
