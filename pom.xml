@@ -59,6 +59,13 @@
             <version>1.0.6</version>
         </dependency>
 
+        <!-- Gson >= 2.9 required by libsql driver (Firebase may override to older version) -->
+        <dependency>
+            <groupId>com.google.code.gson</groupId>
+            <artifactId>gson</artifactId>
+            <version>2.11.0</version>
+        </dependency>
+
         <!-- Lombok -->
         <dependency>
             <groupId>org.projectlombok</groupId>
