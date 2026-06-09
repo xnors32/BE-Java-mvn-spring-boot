@@ -3,17 +3,14 @@ server:
 
 spring:
   datasource:
-    url: jdbc:dbeaver:libsql:${TURSO_DATABASE_URL}
-    username: token
-    password: ${TURSO_AUTH_TOKEN}
-    driver-class-name: com.dbeaver.jdbc.driver.libsql.LibSqlDriver
+    url: jdbc:sqlite:/app/data/inventori.db
+    driver-class-name: org.sqlite.JDBC
     hikari:
-      isolate-internal-queries: false
       connection-test-query: SELECT 1
   jpa:
     database-platform: org.hibernate.community.dialect.SQLiteDialect
     hibernate:
-      ddl-auto: validate
+      ddl-auto: update
     show-sql: ${SHOW_SQL:true}
     properties:
       hibernate:
