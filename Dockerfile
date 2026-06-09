@@ -6,11 +6,7 @@ COPY src ./src
 RUN mvn package -DskipTests -B
 
 FROM eclipse-temurin:21-jre-alpine
-RUN apk add --no-cache sqlite
 WORKDIR /app
 COPY --from=build /app/target/*.jar app.jar
-COPY data/init.sql init.sql
-COPY data/start.sh start.sh
-RUN chmod +x start.sh
 EXPOSE 4000
-ENTRYPOINT ["./start.sh"]
+ENTRYPOINT ["java", "-jar", "app.jar"]
