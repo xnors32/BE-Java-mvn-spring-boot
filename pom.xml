@@ -46,19 +46,17 @@
             <artifactId>spring-boot-starter-web</artifactId>
         </dependency>
 
-        <!-- MySQL Driver -->
+        <!-- Hibernate Community Dialects (SQLite) -->
         <dependency>
-            <groupId>com.mysql</groupId>
-            <artifactId>mysql-connector-j</artifactId>
-            <scope>runtime</scope>
+            <groupId>org.hibernate.orm</groupId>
+            <artifactId>hibernate-community-dialects</artifactId>
         </dependency>
 
-        <!-- Source: https://mvnrepository.com/artifact/org.mariadb.jdbc/mariadb-java-client -->
+        <!-- Turso/libSQL JDBC Driver -->
         <dependency>
-            <groupId>org.mariadb.jdbc</groupId>
-            <artifactId>mariadb-java-client</artifactId>
-            <version>3.5.8</version>
-            <scope>compile</scope>
+            <groupId>com.dbeaver.jdbc</groupId>
+            <artifactId>com.dbeaver.jdbc.driver.libsql</artifactId>
+            <version>1.0.6</version>
         </dependency>
 
         <!-- Lombok -->
