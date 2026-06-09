@@ -3,7 +3,7 @@ server:
 
 spring:
   datasource:
-    url: jdbc:sqlite:/app/data/inventori.db
+    url: jdbc:sqlite:inventori.db
     driver-class-name: org.sqlite.JDBC
     hikari:
       connection-test-query: SELECT 1
