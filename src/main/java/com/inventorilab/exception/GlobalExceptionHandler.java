@@ -10,6 +10,7 @@ import org.springframework.web.bind.MethodArgumentNotValidException;
 import org.springframework.web.bind.annotation.ExceptionHandler;
 import org.springframework.web.bind.annotation.RestControllerAdvice;
 
+import org.springframework.dao.DataIntegrityViolationException;
 import java.util.HashMap;
 import java.util.Map;
 
@@ -76,6 +77,17 @@ public class GlobalExceptionHandler {
                 .data(null)
                 .build();
         return ResponseEntity.status(HttpStatus.FORBIDDEN).body(response);
+    }
+
+    @ExceptionHandler(DataIntegrityViolationException.class)
+    public ResponseEntity<WebResponse<String>> handleDataIntegrityViolation(DataIntegrityViolationException ex) {
+        WebResponse<String> response = WebResponse.<String>builder()
+                .code(HttpStatus.CONFLICT.value())
+                .status("CONFLICT")
+                .message("Data tidak dapat dihapus karena masih terkait dengan data lain!")
+                .data(null)
+                .build();
+        return ResponseEntity.status(HttpStatus.CONFLICT).body(response);
     }
 
     @ExceptionHandler(Exception.class)

@@ -2,8 +2,10 @@ package com.inventorilab.service.impl;
 
 import com.inventorilab.dto.response.UserResponse;
 import com.inventorilab.entity.User;
+import com.inventorilab.exception.BadRequestException;
 import com.inventorilab.exception.ResourceNotFoundException;
 import com.inventorilab.mapper.UserMapper;
+import com.inventorilab.repository.PeminjamanRepository;
 import com.inventorilab.repository.UserRepository;
 import com.inventorilab.service.interfaces.UserService;
 import lombok.RequiredArgsConstructor;
@@ -17,6 +19,7 @@ import org.springframework.transaction.annotation.Transactional;
 public class UserServiceImpl implements UserService {
 
     private final UserRepository userRepository;
+    private final PeminjamanRepository peminjamanRepository;
 
     @Override
     public UserResponse getById(Long id) {
@@ -36,6 +39,14 @@ public class UserServiceImpl implements UserService {
     public void delete(Long id) {
         User user = userRepository.findById(id)
                 .orElseThrow(() -> new ResourceNotFoundException("User dengan ID " + id + " tidak ditemukan!"));
+
+        if (peminjamanRepository.existsByPeminjam(user)) {
+            throw new BadRequestException("User tidak dapat dihapus karena masih memiliki riwayat peminjaman!");
+        }
+        if (peminjamanRepository.existsByPetugas(user)) {
+            throw new BadRequestException("User tidak dapat dihapus karena masih tercatat sebagai petugas peminjaman!");
+        }
+
         userRepository.delete(user);
     }
 }

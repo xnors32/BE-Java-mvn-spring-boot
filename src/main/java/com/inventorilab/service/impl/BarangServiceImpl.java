@@ -8,6 +8,7 @@ import com.inventorilab.exception.BadRequestException;
 import com.inventorilab.exception.ResourceNotFoundException;
 import com.inventorilab.mapper.BarangMapper;
 import com.inventorilab.repository.BarangRepository;
+import com.inventorilab.repository.DetailPeminjamanRepository;
 import com.inventorilab.repository.KategoriRepository;
 import com.inventorilab.service.interfaces.BarangService;
 import lombok.RequiredArgsConstructor;
@@ -22,6 +23,7 @@ public class BarangServiceImpl implements BarangService {
 
     private final BarangRepository barangRepository;
     private final KategoriRepository kategoriRepository;
+    private final DetailPeminjamanRepository detailPeminjamanRepository;
 
     @Override
     @Transactional
@@ -107,6 +109,10 @@ public class BarangServiceImpl implements BarangService {
         // Check if there are active loans
         if (barang.getJumlahTersedia() < barang.getJumlahTotal()) {
             throw new BadRequestException("Barang tidak dapat dihapus karena masih ada unit yang sedang dipinjam!");
+        }
+
+        if (detailPeminjamanRepository.existsByBarang(barang)) {
+            throw new BadRequestException("Barang tidak dapat dihapus karena masih memiliki riwayat peminjaman!");
         }
 
         barangRepository.delete(barang);
