@@ -12,4 +12,6 @@ import org.springframework.stereotype.Repository;
 public interface PeminjamanRepository extends JpaRepository<Peminjaman, Long> {
     Page<Peminjaman> findByPeminjam(User peminjam, Pageable pageable);
     long countByStatus(StatusPeminjaman status);
+    boolean existsByPeminjam(User peminjam);
+    boolean existsByPetugas(User petugas);
 }

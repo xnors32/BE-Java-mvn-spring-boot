@@ -3,6 +3,7 @@ package com.inventorilab.security;
 import java.util.Arrays;
 import java.util.List;
 import lombok.RequiredArgsConstructor;
+import org.springframework.beans.factory.annotation.Value;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
 import org.springframework.http.HttpMethod;
@@ -42,6 +43,9 @@ public class SecurityConfig {
     private final JwtAuthenticationFilter jwtAuthFilter;
     private final CustomUserDetailsService userDetailsService;
 
+    @Value("${app.cors.allowed-origins:https://frontend-baru.vercel.app}")
+    private String allowedOriginsFromEnv;
+
     /**
      * Security Filter Chain Configuration
      * Mengatur authentication, authorization, dan CORS
@@ -65,6 +69,10 @@ public class SecurityConfig {
             .authorizeHttpRequests(auth ->
                 auth
                     // =============== PUBLIC ENDPOINTS ===============
+                    // Health check endpoint
+                    .requestMatchers("/health")
+                    .permitAll()
+
                     // Authentication endpoints (Register & Login)
                     .requestMatchers("/api/auth/**")
                     .permitAll()
@@ -123,6 +131,18 @@ public class SecurityConfig {
                     .requestMatchers("/api/laporan/**")
                     .hasAnyRole("ADMIN", "PETUGAS")
 
+                    // =============== SHOP ENDPOINTS ===============
+                    // Read shop products (semua role)
+                    .requestMatchers(HttpMethod.GET, "/api/shop/**")
+                    .hasAnyRole("ADMIN", "PETUGAS", "MAHASISWA")
+                    // Create, Update, Delete shop products (hanya ADMIN)
+                    .requestMatchers(HttpMethod.POST, "/api/shop/**")
+                    .hasRole("ADMIN")
+                    .requestMatchers(HttpMethod.PUT, "/api/shop/**")
+                    .hasRole("ADMIN")
+                    .requestMatchers(HttpMethod.DELETE, "/api/shop/**")
+                    .hasRole("ADMIN")
+
                     // =============== USER ENDPOINTS ===============
                     .requestMatchers("/api/users/**")
                     .hasAnyRole("ADMIN", "PETUGAS")
@@ -164,16 +184,21 @@ public class SecurityConfig {
         // =============== ALLOWED ORIGINS ===============
         // Development: Allow localhost dan 127.0.0.1 dari berbagai port
         // Production: Ubah ke specific domain(s)
-        config.setAllowedOrigins(
-            Arrays.asList(
-                "http://localhost:5173", // Vite dev server (primary)
-                "http://127.0.0.1:5173", // Alternative localhost
-                "http://localhost:3000", // Alternative dev port
-                "http://localhost:8080", // Alternative dev port
-                "http://localhost:4173", // Vite preview
-                "http://127.0.0.1:3000" // 127.0.0.1 alternative
-            )
-        );
+        List<String> origins = new java.util.ArrayList<>(Arrays.asList(
+            "http://localhost:5173",
+            "http://127.0.0.1:5173",
+            "http://localhost:3000",
+            "http://localhost:8080",
+            "http://localhost:4173",
+            "http://127.0.0.1:3000"
+        ));
+        if (allowedOriginsFromEnv != null && !allowedOriginsFromEnv.isBlank()) {
+            for (String o : allowedOriginsFromEnv.split(",")) {
+                o = o.trim();
+                if (!o.isEmpty()) origins.add(o);
+            }
+        }
+        config.setAllowedOrigins(origins);
 
         // =============== ALLOWED METHODS ===============
         // Support REST methods: GET, POST, PUT, PATCH, DELETE
