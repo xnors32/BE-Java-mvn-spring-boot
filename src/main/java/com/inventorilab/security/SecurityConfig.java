@@ -133,6 +133,18 @@ public class SecurityConfig {
 
                     // =============== SHOP ENDPOINTS ===============
                     // Read shop products (semua role)
+                    .requestMatchers(HttpMethod.GET, "/api/shop/orders/mine")
+                    .hasAnyRole("ADMIN", "PETUGAS", "MAHASISWA")
+                    // Read all orders (hanya Admin & Petugas)
+                    .requestMatchers(HttpMethod.GET, "/api/shop/orders")
+                    .hasAnyRole("ADMIN", "PETUGAS")
+                    // Create order (semua role)
+                    .requestMatchers(HttpMethod.POST, "/api/shop/orders")
+                    .hasAnyRole("ADMIN", "PETUGAS", "MAHASISWA")
+                    // Update order status (hanya Admin & Petugas)
+                    .requestMatchers("/api/shop/orders/{id}/status")
+                    .hasAnyRole("ADMIN", "PETUGAS")
+                    // Read shop products (semua role)
                     .requestMatchers(HttpMethod.GET, "/api/shop/**")
                     .hasAnyRole("ADMIN", "PETUGAS", "MAHASISWA")
                     // Create, Update, Delete shop products (hanya ADMIN)

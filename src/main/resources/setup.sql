@@ -205,6 +205,26 @@ SELECT
 FROM users;
 
 
+-- 7. Tabel shop_orders (pesanan dari Shop)
+CREATE TABLE IF NOT EXISTS shop_orders (
+    id           BIGINT       NOT NULL AUTO_INCREMENT,
+    id_user      BIGINT       NOT NULL,
+    id_product   BIGINT       NOT NULL,
+    quantity     INT          NOT NULL DEFAULT 1,
+    total_harga  DECIMAL(15,2) NOT NULL,
+    status       VARCHAR(20)  NOT NULL DEFAULT 'MENUNGGU',
+    created_at   DATETIME     NOT NULL DEFAULT CURRENT_TIMESTAMP,
+    updated_at   DATETIME     NULL DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
+    PRIMARY KEY (id),
+    CONSTRAINT fk_shop_orders_user
+        FOREIGN KEY (id_user) REFERENCES users (id)
+        ON DELETE CASCADE,
+    CONSTRAINT fk_shop_orders_product
+        FOREIGN KEY (id_product) REFERENCES shop_products (id)
+        ON DELETE CASCADE
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4;
+
+
 -- 8d. Cek foreign key constraints aktif
 SELECT
     CONSTRAINT_NAME,
