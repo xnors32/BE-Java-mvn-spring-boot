@@ -95,8 +95,42 @@ CREATE TABLE IF NOT EXISTS detail_peminjaman (
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4;
 
 
+-- -------------------------------------------------------------
+-- 7. TABEL SHOP_PRODUCTS (terpisah dari barang inventaris)
+-- -------------------------------------------------------------
+CREATE TABLE IF NOT EXISTS shop_products (
+    id              BIGINT         NOT NULL AUTO_INCREMENT,
+    id_user         BIGINT         NOT NULL,
+    nama_produk     VARCHAR(150)   NOT NULL,
+    deskripsi       TEXT,
+    harga           DECIMAL(15,2)  NOT NULL DEFAULT 0.00,
+    stok            INT            NOT NULL DEFAULT 0,
+    gambar_url      TEXT,
+    kategori        VARCHAR(100),
+    tags            TEXT,
+    created_at      DATETIME       NOT NULL DEFAULT CURRENT_TIMESTAMP,
+    updated_at      DATETIME       DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
+
+    PRIMARY KEY (id),
+    CONSTRAINT fk_shop_product_user
+        FOREIGN KEY (id_user) REFERENCES users(id)
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4;
+
+
 -- =============================================================
--- 7. AKUN AWAL
+-- 8. AKUN AWAL
+-- =============================================================
+-- Password di-hash menggunakan BCrypt(strength=10).
+-- JANGAN ubah kolom password secara manual tanpa generate hash
+-- ulang via aplikasi atau script di bawah.
+--
+-- Password plaintext:
+--   admin@lab.com   -> admin123
+--   petugas@lab.com -> petugas123
+--
+-- Untuk generate hash baru (jika ingin ganti password), jalankan
+-- endpoint register atau gunakan query verifikasi di bagian 9.
+-- =============================================================
 -- =============================================================
 -- Password di-hash menggunakan BCrypt(strength=10).
 -- JANGAN ubah kolom password secara manual tanpa generate hash
@@ -123,7 +157,7 @@ WHERE NOT EXISTS (SELECT 1 FROM users WHERE email = 'petugas@lab.com');
 
 
 -- =============================================================
--- 8. QUERY VERIFIKASI
+-- 9. QUERY VERIFIKASI
 -- =============================================================
 -- Jalankan query-query berikut untuk memastikan setup sudah benar.
 

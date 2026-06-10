@@ -131,6 +131,18 @@ public class SecurityConfig {
                     .requestMatchers("/api/laporan/**")
                     .hasAnyRole("ADMIN", "PETUGAS")
 
+                    // =============== SHOP ENDPOINTS ===============
+                    // Read shop products (semua role)
+                    .requestMatchers(HttpMethod.GET, "/api/shop/**")
+                    .hasAnyRole("ADMIN", "PETUGAS", "MAHASISWA")
+                    // Create, Update, Delete shop products (hanya ADMIN)
+                    .requestMatchers(HttpMethod.POST, "/api/shop/**")
+                    .hasRole("ADMIN")
+                    .requestMatchers(HttpMethod.PUT, "/api/shop/**")
+                    .hasRole("ADMIN")
+                    .requestMatchers(HttpMethod.DELETE, "/api/shop/**")
+                    .hasRole("ADMIN")
+
                     // =============== USER ENDPOINTS ===============
                     .requestMatchers("/api/users/**")
                     .hasAnyRole("ADMIN", "PETUGAS")
